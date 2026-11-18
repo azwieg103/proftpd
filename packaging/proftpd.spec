@@ -1,7 +1,7 @@
 %global _hardened_build 1
 Name:           proftpd
 Version:        %{proftpd_version}
-Release:        %{?proftpd_release}%{!?proftpd_release:ZWIEGNET.1}
+Release:        %{?proftpd_release}%{!?proftpd_release:ZWIEGNET.1.el10}
 Summary:        Flexible, stable and highly configurable FTP server
 License:        GPL-2.0-or-later
 URL:            https://www.proftpd.org/
