@@ -1,0 +1,175 @@
+name: Build and Publish ProFTPD Enterprise Linux 10 RPM
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "upstream/**"
+      - "packaging/**"
+      - "scripts/**"
+      - ".github/workflows/build-rpm.yml"
+
+concurrency:
+  group: proftpd-rpm-build
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: almalinux:10
+    outputs:
+      is_current: ${{ steps.freshness.outputs.is_current }}
+      rpm_version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Enable CRB and install build requirements
+        run: |
+          dnf -y install dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          dnf -y install \
+            gcc make autoconf automake libtool pkgconf-pkg-config \
+            openssl-devel pam-devel zlib-devel pcre2-devel \
+            libacl-devel libcap-devel openldap-devel sqlite-devel \
+            libpq-devel mariadb-connector-c-devel \
+            rpm-build rpmdevtools tar gzip findutils sed grep \
+            systemd-rpm-macros shadow-utils
+          dnf clean all
+
+      - name: Check out packaging repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Select next ZWIEGNET rebuild number
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          version = open("upstream/VERSION", encoding="utf-8").read().strip()
+          prefix = f"proftpd-{version}-ZWIEGNET."
+          token = os.environ["GH_TOKEN"]
+          repo = os.environ["GH_REPO"]
+          maximum = 0
+          page = 1
+          while True:
+              url = f"https://api.github.com/repos/{repo}/releases?per_page=100&page={page}"
+              request = urllib.request.Request(url, headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {token}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+              })
+              with urllib.request.urlopen(request) as response:
+                  releases = json.load(response)
+              if not releases:
+                  break
+              for release in releases:
+                  tag = release.get("tag_name", "")
+                  if tag.startswith(prefix):
+                      suffix = tag[len(prefix):]
+                      if suffix.isdigit():
+                          maximum = max(maximum, int(suffix))
+              if len(releases) < 100:
+                  break
+              page += 1
+          value = f"ZWIEGNET.{maximum + 1}"
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"release={value}\n")
+          print(f"Selected RPM release: {version}-{value}")
+          PY
+
+      - name: Build RPM and source RPM
+        env:
+          RPM_RELEASE: ${{ steps.release.outputs.release }}
+        run: |
+          chmod +x scripts/build-rpm.sh
+          ./scripts/build-rpm.sh
+
+      - name: Confirm this is still the latest main build
+        if: success()
+        id: freshness
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const ref = await github.rest.git.getRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "heads/main"
+            });
+            const isCurrent = ref.data.object.sha === context.sha;
+            core.setOutput("is_current", String(isCurrent));
+            if (!isCurrent) core.info("Not publishing an RPM from an outdated build.");
+
+      - name: Determine RPM release metadata
+        if: steps.freshness.outputs.is_current == 'true'
+        id: meta
+        run: |
+          rpm_file="$(find dist -maxdepth 1 -type f -name 'proftpd-[0-9]*.x86_64.rpm' ! -name '*debuginfo*' ! -name '*debugsource*' | head -n1)"
+          test -n "$rpm_file"
+          version="$(rpm -qp --qf '%{VERSION}-%{RELEASE}' "$rpm_file")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          rpm -qp --qf 'RPM: %{NAME} %{VERSION}-%{RELEASE} %{ARCH}\n' "$rpm_file"
+
+      - name: Upload RPM artifacts
+        if: success() && steps.freshness.outputs.is_current == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: proftpd-almalinux-10-x86_64
+          path: dist/*.rpm
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: build
+    if: needs.build.outputs.is_current == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download RPM artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: proftpd-almalinux-10-x86_64
+          path: dist
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          RPM_VERSION: ${{ needs.build.outputs.rpm_version }}
+        run: |
+          set -euo pipefail
+          tag="proftpd-$RPM_VERSION"
+          title="ProFTPD $RPM_VERSION (Enterprise Linux 10)"
+          notes=$(cat <<'EOF'
+          Rebuilt ProFTPD packages for Enterprise Linux 10 (x86_64), intended for AlmaLinux 10, Red Hat Enterprise Linux 10, Oracle Linux 10, Rocky Linux 10, and CentOS Stream 10.
+
+          Rebuilt from the upstream ProFTPD source snapshot stored in this repository and synchronized from the official proftpd/proftpd GitHub project.
+
+          The RPM version follows upstream. The ZWIEGNET rebuild number increments for each published build of the same upstream version. These packages are supplied as-is, with no warranty or support. They are built on AlmaLinux 10 and are not individually tested on every Enterprise Linux distribution.
+
+          Includes the binary RPM and source RPM. Publication occurs only after the RPM build succeeds.
+          EOF
+          )
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; refusing to overwrite published artifacts."
+            exit 1
+          fi
+          gh release create "$tag" dist/*.rpm \
+            --target "$GITHUB_SHA" \
+            --title "$title" \
+            --notes "$notes" \
+            --latest
