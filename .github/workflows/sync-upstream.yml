@@ -1,0 +1,98 @@
+name: Sync official ProFTPD source
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-proftpd-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out packaging repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Find latest stable upstream release and snapshot source
+        id: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/proftpd/proftpd/releases?per_page=100"
+          curl --fail --silent --show-error --location "$api" -o /tmp/releases.json
+          tag="$(python3 - <<'PY'
+          import json
+          with open("/tmp/releases.json", encoding="utf-8") as f:
+              releases = json.load(f)
+          stable = [
+              r for r in releases
+              if not r.get("draft", False)
+              and not r.get("prerelease", False)
+              and r.get("tag_name", "").startswith("v")
+          ]
+          if not stable:
+              raise SystemExit("No stable ProFTPD release found.")
+          stable.sort(key=lambda r: r.get("published_at") or r.get("created_at") or "", reverse=True)
+          print(stable[0]["tag_name"])
+          PY
+          )"
+          version="${tag#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+[a-z]?$ ]] || {
+            echo "Refusing unexpected stable version: $version" >&2
+            exit 1
+          }
+
+          mkdir -p upstream
+          archive="proftpd-${version}.tar.gz"
+          url="https://github.com/proftpd/proftpd/archive/refs/tags/${tag}.tar.gz"
+          curl --fail --silent --show-error --location "$url" -o "upstream/$archive"
+          sha256sum "upstream/$archive" | awk '{print $1}' > upstream/SOURCE_SHA256
+          printf '%s\n' "$version" > upstream/VERSION
+          printf '%s\n' "$tag" > upstream/UPSTREAM_TAG
+          printf '%s\n' "$url" > upstream/SOURCE_URL
+          tar -tzf "upstream/$archive" >/dev/null
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create upstream synchronization pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_TAG: ${{ steps.upstream.outputs.tag }}
+          UPSTREAM_VERSION: ${{ steps.upstream.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="upstream-sync-${UPSTREAM_TAG}"
+          git switch --create "$branch"
+          git add upstream/
+          if git diff --cached --quiet -- upstream; then
+            echo "Upstream is already synchronized at ${UPSTREAM_TAG}."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sync official ProFTPD ${UPSTREAM_VERSION} source"
+          git push --set-upstream origin "$branch"
+          existing="$(gh pr list --state open --head "$branch" --json number --jq 'length')"
+          if [ "$existing" -eq 0 ]; then
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "Sync official ProFTPD ${UPSTREAM_VERSION} upstream" \
+              --body "Automated source snapshot from the official proftpd/proftpd stable release ${UPSTREAM_TAG}.
+
+          The source archive, tag, download URL, and SHA-256 checksum are stored under upstream/. Packaging files are not modified. Review and merge this source-only update to trigger the Enterprise Linux 10 RPM build."
+          fi
