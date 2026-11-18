@@ -31,7 +31,7 @@ cp packaging/sysconfig.proftpd "$topdir/SOURCES/sysconfig.proftpd"
 cp packaging/proftpd.tmpfiles "$topdir/SOURCES/proftpd.tmpfiles"
 cp packaging/proftpd.logrotate "$topdir/SOURCES/proftpd.logrotate"
 
-release="${RPM_RELEASE:-ZWIEGNET.1}"
+release="${RPM_RELEASE:-ZWIEGNET.1.el10}"
 rpmbuild -ba packaging/proftpd.spec \
   --define "_topdir $topdir" \
   --define "proftpd_version $version" \
