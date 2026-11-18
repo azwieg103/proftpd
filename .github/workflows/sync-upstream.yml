@@ -2,6 +2,10 @@ name: Sync official ProFTPD source
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/sync-upstream.yml"
   schedule:
     - cron: "23 */6 * * *"
 
