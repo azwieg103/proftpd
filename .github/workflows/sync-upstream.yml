@@ -76,7 +76,7 @@ jobs:
         run: |
           set -euo pipefail
           branch="upstream-sync-${UPSTREAM_TAG}"
-          git switch --create "$branch"
+          git switch --force-create "$branch" main
           git add upstream/
           if git diff --cached --quiet -- upstream; then
             echo "Upstream is already synchronized at ${UPSTREAM_TAG}."
