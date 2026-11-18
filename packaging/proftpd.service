@@ -1,0 +1,23 @@
+[Unit]
+Description=ProFTPD FTP Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/sysconfig/proftpd
+RuntimeDirectory=proftpd
+RuntimeDirectoryMode=0750
+ExecStartPre=/usr/sbin/proftpd -t
+ExecStart=/usr/sbin/proftpd -n $PROFTPD_OPTIONS
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+Restart=on-failure
+RestartSec=5s
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
