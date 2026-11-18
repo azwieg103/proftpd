@@ -34,7 +34,7 @@ jobs:
           dnf config-manager --set-enabled crb
           dnf -y install \
             gcc make autoconf automake libtool pkgconf-pkg-config \
-            openssl-devel pam-devel zlib-devel pcre2-devel \
+            openssl-devel pam-devel gettext-devel zlib-devel pcre2-devel \
             libacl-devel libcap-devel openldap-devel sqlite-devel \
             libpq-devel mariadb-connector-c-devel \
             rpm-build rpmdevtools tar gzip findutils sed grep \
