@@ -30,11 +30,11 @@ The package includes a systemd unit and a conservative default configuration. Th
 
 ## Versioning
 
-The RPM version follows the upstream stable version. The RPM release uses `ZWIEGNET.N`, incrementing for each successful published rebuild of the same upstream version. A new upstream version starts at `ZWIEGNET.1`.
+The RPM version follows the upstream stable version. The RPM release uses `ZWIEGNET.N.el10`: `.el10` identifies the Enterprise Linux 10 build, and `N` increments for each successful published rebuild of the same upstream version. A new upstream version starts at `ZWIEGNET.1.el10`.
 
 Example:
 
-`proftpd-1.3.9e-ZWIEGNET.1.x86_64.rpm`
+`proftpd-1.3.9e-ZWIEGNET.2.el10.x86_64.rpm`
 
 ## Automation
 
