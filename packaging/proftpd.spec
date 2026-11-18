@@ -17,6 +17,7 @@ BuildRequires:  autoconf
 BuildRequires:  automake
 BuildRequires:  libtool
 BuildRequires:  pkgconf-pkg-config
+BuildRequires:  gettext-devel
 BuildRequires:  openssl-devel
 BuildRequires:  pam-devel
 BuildRequires:  zlib-devel
@@ -100,5 +101,5 @@ exit 0
 %dir %attr(0750,root,proftpd) %{_localstatedir}/log/proftpd
 
 %changelog
-* Wed Nov 18 2026 Zwiegnet Packaging <packages@zwiegnet.com> - %{version}-ZWIEGNET.1
+* Wed Nov 18 2026 Zwiegnet Packaging <packages@zwiegnet.com> - %{version}-%{release}
 - Initial Enterprise Linux 10 rebuild.
