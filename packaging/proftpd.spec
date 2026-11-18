@@ -73,6 +73,7 @@ find %{buildroot} \( -type f -o -type l \) \
     ! -path '%{buildroot}%{_sysconfdir}/sysconfig/proftpd' \
     ! -path '%{buildroot}%{_tmpfilesdir}/proftpd.conf' \
     ! -path '%{buildroot}%{_sysconfdir}/logrotate.d/proftpd' \
+    ! -path '%{buildroot}%{_mandir}/man*' \
     | sed 's#^%{buildroot}##' | sort > %{_builddir}/proftpd-filelist
 
 %pre
@@ -98,6 +99,9 @@ exit 0
 %config(noreplace) %{_sysconfdir}/logrotate.d/proftpd
 %{_unitdir}/proftpd.service
 %{_tmpfilesdir}/proftpd.conf
+%{_mandir}/man1/*
+%{_mandir}/man5/*
+%{_mandir}/man8/*
 %dir %attr(0750,root,proftpd) %{_localstatedir}/log/proftpd
 
 %changelog
