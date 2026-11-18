@@ -85,7 +85,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Sync official ProFTPD ${UPSTREAM_VERSION} source"
-          git push --set-upstream origin "$branch"
+          git push --force origin "$branch"
           existing="$(gh pr list --state open --head "$branch" --json number --jq 'length')"
           if [ "$existing" -eq 0 ]; then
             gh pr create \
