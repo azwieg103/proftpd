@@ -20,7 +20,7 @@ Packages are built on AlmaLinux 10 x86_64. They are intended for the Enterprise 
 - Official source repository: https://github.com/proftpd/proftpd
 - Tracked release channel: stable GitHub releases only
 
-The synchronization workflow checks the official upstream GitHub Releases API every six hours. It excludes drafts and prereleases, downloads the latest stable release source archive, records its tag and SHA-256 checksum, and opens a pull request containing only the upstream snapshot change. The source snapshot is kept separate from the packaging files so packaging changes are never overwritten by upstream synchronization.
+The initial stable upstream source snapshot (v1.3.9e) is now present under `upstream/`. The synchronization workflow checks the official upstream GitHub Releases API every six hours. It excludes drafts and prereleases, downloads the latest stable release source archive, records its tag and SHA-256 checksum, and opens a pull request containing only the upstream snapshot change. The source snapshot is kept separate from the packaging files so packaging changes are never overwritten by upstream synchronization.
 
 ## Packages
 
