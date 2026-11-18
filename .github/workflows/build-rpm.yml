@@ -79,6 +79,8 @@ jobs:
                   tag = release.get("tag_name", "")
                   if tag.startswith(prefix):
                       suffix = tag[len(prefix):]
+                      if suffix.endswith(".el10"):
+                          suffix = suffix[:-5]
                       if suffix.isdigit():
                           maximum = max(maximum, int(suffix))
               if len(releases) < 100:
