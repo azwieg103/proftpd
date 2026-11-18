@@ -1,0 +1,13 @@
+/var/log/proftpd/*.log {
+    missingok
+    notifempty
+    sharedscripts
+    compress
+    delaycompress
+    rotate 12
+    weekly
+    create 0640 proftpd proftpd
+    postrotate
+        /usr/bin/systemctl try-reload-or-restart proftpd.service >/dev/null 2>&1 || true
+    endscript
+}
