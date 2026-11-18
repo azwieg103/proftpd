@@ -84,7 +84,7 @@ jobs:
               if len(releases) < 100:
                   break
               page += 1
-          value = f"ZWIEGNET.{maximum + 1}"
+          value = f"ZWIEGNET.{maximum + 1}.el10"
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"release={value}\n")
           print(f"Selected RPM release: {version}-{value}")
@@ -159,7 +159,7 @@ jobs:
 
           Rebuilt from the upstream ProFTPD source snapshot stored in this repository and synchronized from the official proftpd/proftpd GitHub project.
 
-          The RPM version follows upstream. The ZWIEGNET rebuild number increments for each published build of the same upstream version. These packages are supplied as-is, with no warranty or support. They are built on AlmaLinux 10 and are not individually tested on every Enterprise Linux distribution.
+          The RPM version follows upstream. The RPM release uses the format ZWIEGNET.N.el10, identifying the Enterprise Linux 10 build; the ZWIEGNET rebuild number increments for each published build of the same upstream version. These packages are supplied as-is, with no warranty or support. They are built on AlmaLinux 10 and are not individually tested on every Enterprise Linux distribution.
 
           Includes the binary RPM and source RPM. Publication occurs only after the RPM build succeeds.
           EOF
