@@ -58,8 +58,8 @@ FTP over TLS, and the SFTP protocol through its modular architecture.
 rm -rf %{buildroot}
 %make_install
 
-# The service is not enabled automatically. Administrators must configure
-# TLS and firewall/passive-port policy before exposing FTP to a network.
+# The service is not enabled automatically. The packaged configuration denies
+# logins until administrators configure authentication and mandatory TLS.
 install -Dpm 0644 %{SOURCE1} %{buildroot}%{_sysconfdir}/proftpd.conf
 install -Dpm 0644 %{SOURCE2} %{buildroot}%{_unitdir}/proftpd.service
 install -Dpm 0644 %{SOURCE3} %{buildroot}%{_sysconfdir}/sysconfig/proftpd
@@ -105,5 +105,9 @@ exit 0
 %dir %attr(0750,root,proftpd) %{_localstatedir}/log/proftpd
 
 %changelog
+* Wed Nov 18 2026 Zwiegnet Packaging <packages@zwiegnet.com> - %{version}-%{release}
+- Deny FTP logins until administrators configure authentication and TLS.
+- Disable file overwriting by default and harden the systemd service.
+- Document administrator security responsibilities and warranty disclaimer.
 * Wed Nov 18 2026 Zwiegnet Packaging <packages@zwiegnet.com> - %{version}-%{release}
 - Initial Enterprise Linux 10 rebuild.
